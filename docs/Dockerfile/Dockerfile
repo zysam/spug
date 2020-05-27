@@ -18,7 +18,8 @@ RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/  && 
     && apk del .build-deps
 
 RUN cd /spug/spug_web/ && npm i --registry=https://registry.npm.taobao.org && npm run build \
-    && mv /spug/spug_web/build /var/www/
+    && mv /spug/spug_web/build /var/www/ \
+    && rm -rf /spug/spug_web/
 
 ADD spug.ini /etc/supervisor.d/spug.ini
 ADD default.conf /etc/nginx/conf.d/default.conf
