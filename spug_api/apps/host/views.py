@@ -2,8 +2,6 @@
 # Copyright: (c) <spug.dev@gmail.com>
 # Released under the MIT License.
 from django.views.generic import View
-from django.shortcuts import render
-from django.http.response import HttpResponseBadRequest
 from django.db.models import F
 from libs import json_response, JsonParser, Argument
 from apps.setting.utils import AppSetting
@@ -12,11 +10,15 @@ from apps.app.models import Deploy
 from apps.schedule.models import Task
 from apps.monitor.models import Detection
 from libs.ssh import SSH, AuthenticationException
-from libs import human_datetime
+from libs import human_datetime, AttrDict
+from openpyxl import load_workbook
 
 
 class HostView(View):
     def get(self, request):
+        host_id = request.GET.get('id')
+        if host_id:
+            return json_response(Host.objects.get(pk=host_id))
         hosts = Host.objects.filter(deleted_by_id__isnull=True)
         zones = [x['zone'] for x in hosts.order_by('zone').values('zone').distinct()]
         return json_response({'zones': zones, 'hosts': [x.to_dict() for x in hosts]})
@@ -68,12 +70,36 @@ class HostView(View):
         return json_response(error=error)
 
 
-def web_ssh(request, h_id):
-    host = Host.objects.filter(pk=h_id).first()
-    if not host:
-        return HttpResponseBadRequest('unknown host')
-    context = {'id': h_id, 'title': host.name, 'token': request.user.access_token}
-    return render(request, 'web_ssh.html', context)
+def post_import(request):
+    password = request.POST.get('password')
+    file = request.FILES['file']
+    ws = load_workbook(file, read_only=True)['Sheet1']
+    summary = {'invalid': [], 'skip': [], 'fail': [], 'success': []}
+    for i, row in enumerate(ws.rows):
+        if i == 0:  # 第1行是表头 略过
+            continue
+        if not all([row[x].value for x in range(5)]):
+            summary['invalid'].append(i)
+            continue
+        data = AttrDict(
+            zone=row[0].value,
+            name=row[1].value,
+            hostname=row[2].value,
+            port=row[3].value,
+            username=row[4].value,
+            password=row[5].value,
+            desc=row[6].value
+        )
+        if Host.objects.filter(hostname=data.hostname, port=data.port, username=data.username,
+                               deleted_by_id__isnull=True).exists():
+            summary['skip'].append(i)
+            continue
+        if valid_ssh(data.hostname, data.port, data.username, data.pop('password') or password) is False:
+            summary['fail'].append(i)
+            continue
+        Host.objects.create(created_by=request.user, **data)
+        summary['success'].append(i)
+    return json_response(summary)
 
 
 def valid_ssh(hostname, port, username, password):
