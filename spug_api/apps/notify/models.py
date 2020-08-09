@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from django.db import models
 from django.core.cache import cache
 from libs import ModelMixin, human_datetime
@@ -15,6 +15,7 @@ class Notify(models.Model, ModelMixin):
     SOURCES = (
         ('monitor', '监控中心'),
         ('schedule', '任务计划'),
+        ('flag', '应用发布'),
     )
     title = models.CharField(max_length=255)
     source = models.CharField(max_length=10, choices=SOURCES)

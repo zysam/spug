@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import { observable } from "mobx";
 import http from 'libs/http';
@@ -26,7 +26,7 @@ class Store {
         res.map(item => {
           tmp.add(item['type_alias']);
           const value = item['latest_run_time'];
-          item['latest_run_time'] = value ? moment(value).fromNow() : null;
+          item['latest_run_time_alias'] = value ? moment(value).fromNow() : null;
           return null
         });
         this.types = Array.from(tmp);

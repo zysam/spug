@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
@@ -63,7 +63,7 @@ class HostSelector extends React.Component {
     dataIndex: 'name',
     ellipsis: true
   }, {
-    title: '连结地址',
+    title: '连接地址',
     dataIndex: 'hostname',
   }, {
     title: '端口',
@@ -76,7 +76,7 @@ class HostSelector extends React.Component {
 
   render() {
     const {selectedRows} = this.state;
-    let data = store.records;
+    let data = store.permRecords;
     if (store.f_name) {
       data = data.filter(item => item['name'].toLowerCase().includes(store.f_name.toLowerCase()))
     }

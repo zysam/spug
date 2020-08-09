@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import styles from './index.module.css';
@@ -58,7 +58,7 @@ class LDAPSetting extends React.Component {
           <Form.Item required label="LDAP服务地址">
             {getFieldDecorator('server', {initialValue: this.setting['server'],
               rules: [{required: true, message: '请输入LDAP服务地址'}]})(
-              <Input placeholder="请输入LDAP服务地址"/>
+              <Input placeholder="例如：ldap.spug.dev"/>
             )}
           </Form.Item>
           <Form.Item required label="LDAP服务端口">

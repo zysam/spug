@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from django.views.generic import View
 from libs import json_response, JsonParser, Argument
 from apps.alarm.models import Alarm, Group, Contact
@@ -60,6 +60,7 @@ class ContactView(View):
             Argument('email', required=False),
             Argument('ding', required=False),
             Argument('wx_token', required=False),
+            Argument('qy_wx', required=False),
         ).parse(request.body)
         if error is None:
             if form.id:

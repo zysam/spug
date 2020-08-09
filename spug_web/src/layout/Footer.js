@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { Layout, Icon } from 'antd';
@@ -22,7 +22,7 @@ export default class extends React.Component {
                rel="noopener noreferrer">文档</a>
           </div>
           <div style={{color: 'rgba(0, 0, 0, .45)'}}>
-            Copyright <Icon type="copyright"/> 2019 By OpenSpug
+            Copyright <Icon type="copyright"/> 2020 By OpenSpug
           </div>
         </div>
       </Layout.Footer>

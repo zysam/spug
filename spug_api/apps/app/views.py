@@ -1,13 +1,16 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from django.views.generic import View
 from django.db.models import F
+from django.conf import settings
 from libs import JsonParser, Argument, json_response
 from apps.app.models import App, Deploy, DeployExtend1, DeployExtend2
 from apps.config.models import Config
 from apps.app.utils import parse_envs, fetch_versions, remove_repo
+import subprocess
 import json
+import os
 
 
 class AppView(View):
@@ -26,6 +29,7 @@ class AppView(View):
             Argument('desc', required=False)
         ).parse(request.body)
         if error is None:
+            form.name = form.name.replace("'", '')
             app = App.objects.filter(key=form.key).first()
             if app and app.id != form.id:
                 return json_response(error=f'唯一标识符 {form.key} 已存在，请更改后重试')
@@ -108,6 +112,7 @@ class DeployView(View):
                 ).parse(request.body)
                 if error:
                     return json_response(error=error)
+                extend_form.dst_dir = extend_form.dst_dir.rstrip('/')
                 extend_form.filter_rule = json.dumps(extend_form.filter_rule)
                 extend_form.custom_envs = json.dumps(parse_envs(extend_form.custom_envs))
                 if form.id:
@@ -144,6 +149,8 @@ class DeployView(View):
         ).parse(request.GET)
         if error is None:
             Deploy.objects.filter(pk=form.id).delete()
+            repo_dir = os.path.join(settings.REPOS_DIR, str(form.id))
+            subprocess.Popen(f'rm -rf {repo_dir} {repo_dir + "_*"}', shell=True)
         return json_response(error=error)
 
 

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from "react";
 import Editor from 'react-ace';
@@ -13,8 +13,8 @@ import 'ace-builds/src-noconflict/snippets/sh';
 export default function (props) {
   return (
     <Editor
+      wrapEnabled
       theme="tomorrow"
-      enableLiveAutocompletion={true}
       enableBasicAutocompletion={true}
       enableSnippets={true}
       {...props}

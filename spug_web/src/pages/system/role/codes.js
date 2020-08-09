@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 export default [{
   key: 'home',
@@ -57,6 +57,7 @@ export default [{
       {key: 'add', label: '新建应用'},
       {key: 'edit', label: '编辑应用'},
       {key: 'del', label: '删除应用'},
+      {key: 'config', label: '查看配置'},
     ]
   }, {
     key: 'request',

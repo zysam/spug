@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import {Form, Input, Icon, Button, Tabs, Modal} from 'antd';
@@ -12,6 +12,8 @@ import logo from 'layout/logo-spug-txt.png';
 import envStore from 'pages/config/environment/store';
 import appStore from 'pages/config/app/store';
 import requestStore from 'pages/deploy/request/store';
+import execStore from 'pages/exec/task/store';
+import hostStore from 'pages/host/store';
 
 class LoginIndex extends React.Component {
   constructor(props) {
@@ -26,7 +28,9 @@ class LoginIndex extends React.Component {
     envStore.records = [];
     appStore.records = [];
     requestStore.records = [];
-    requestStore.deploys = []
+    requestStore.deploys = [];
+    hostStore.records = [];
+    execStore.hosts = [];
   }
 
   handleSubmit = () => {
@@ -59,7 +63,8 @@ class LoginIndex extends React.Component {
     localStorage.setItem('nickname', data['nickname']);
     localStorage.setItem('is_supper', data['is_supper']);
     localStorage.setItem('permissions', JSON.stringify(data['permissions']));
-    updatePermissions(data['is_supper'], data['permissions']);
+    localStorage.setItem('host_perms', JSON.stringify(data['host_perms']));
+    updatePermissions(data['is_supper'], data['host_perms'], data['permissions']);
     if (history.location.state && history.location.state['from']) {
       history.push(history.location.state['from'])
     } else {
@@ -121,7 +126,7 @@ class LoginIndex extends React.Component {
             <a title="文档" href="https://www.spug.dev/docs/about-spug/"  target="_blank"
                rel="noopener noreferrer">文档</a>
           </div>
-          <div style={{color: 'rgba(0, 0, 0, .45)'}}>Copyright <Icon type="copyright" /> 2019 By OpenSpug</div>
+          <div style={{color: 'rgba(0, 0, 0, .45)'}}>Copyright <Icon type="copyright" /> 2020 By OpenSpug</div>
         </div>
       </div>
     )

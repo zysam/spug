@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -25,7 +25,7 @@ export default class extends React.Component {
 
   componentDidMount() {
     this.fetch();
-    this.interval = setInterval(this.fetch, 30000)
+    this.interval = setInterval(this.fetch, 60000)
   }
 
   componentWillUnmount() {

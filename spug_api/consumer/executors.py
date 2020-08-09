@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from channels.consumer import SyncConsumer
 from apps.setting.utils import AppSetting
 from django_redis import get_redis_connection
@@ -59,5 +59,8 @@ class Job:
         except socket.timeout:
             code = 130
             self.send_error('### Time out')
+        except Exception as e:
+            code = 131
+            self.send_error(f'{e}')
         finally:
             self.send_status(code)

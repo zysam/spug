@@ -1,7 +1,7 @@
 """
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 
 Django settings for spug project.
 
@@ -121,7 +121,7 @@ AUTHENTICATION_EXCLUDES = (
     re.compile('/apis/.*'),
 )
 
-SPUG_VERSION = 'v2.2.6'
+SPUG_VERSION = 'v2.3.8'
 
 # override default config
 try:

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
@@ -28,7 +28,7 @@ class ComTable extends React.Component {
     ellipsis: true
   }, {
     title: '操作',
-    width: 300,
+    width: 400,
     render: info => (
       <span>
         <LinkButton onClick={() => store.showForm(info)}>编辑</LinkButton>
@@ -36,6 +36,8 @@ class ComTable extends React.Component {
         <LinkButton onClick={() => store.showPagePerm(info)}>功能权限</LinkButton>
         <Divider type="vertical"/>
         <LinkButton onClick={() => store.showDeployPerm(info)}>发布权限</LinkButton>
+        <Divider type="vertical"/>
+        <LinkButton onClick={() => store.showHostPerm(info)}>主机权限</LinkButton>
         <Divider type="vertical"/>
         <LinkButton onClick={() => this.handleDelete(info)}>删除</LinkButton>
       </span>
@@ -62,7 +64,17 @@ class ComTable extends React.Component {
       data = data.filter(item => item['name'].toLowerCase().includes(store.f_name.toLowerCase()))
     }
     return (
-      <Table rowKey="id" loading={store.isFetching} dataSource={data} columns={this.columns}/>
+      <Table
+        rowKey="id"
+        loading={store.isFetching}
+        dataSource={data}
+        pagination={{
+          showSizeChanger: true,
+          showLessItems: true,
+          hideOnSinglePage: true,
+          pageSizeOptions: ['10', '20', '50', '100']
+        }}
+        columns={this.columns}/>
     )
   }
 }

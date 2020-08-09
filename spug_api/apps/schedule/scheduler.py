@@ -1,7 +1,8 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.cron import CronTrigger
@@ -9,25 +10,36 @@ from apscheduler.events import EVENT_SCHEDULER_SHUTDOWN, EVENT_JOB_MAX_INSTANCES
 from django_redis import get_redis_connection
 from django.utils.functional import SimpleLazyObject
 from django.db import close_old_connections
-from apps.schedule.models import Task
+from apps.schedule.models import Task, History
+from apps.schedule.utils import send_fail_notify
 from apps.notify.models import Notify
 from apps.schedule.executors import dispatch
+from apps.schedule.utils import auto_clean_schedule_history
 from apps.alarm.utils import auto_clean_records
 from django.conf import settings
 from libs import AttrDict, human_datetime
 import logging
 import json
-import time
 
 logger = logging.getLogger("django.apps.scheduler")
-counter = dict()
 
 
 class Scheduler:
     timezone = settings.TIME_ZONE
+    week_map = {
+        '*': '*',
+        '7': '6',
+        '0': '6',
+        '1': '0',
+        '2': '1',
+        '3': '2',
+        '4': '3',
+        '5': '4',
+        '6': '5',
+    }
 
     def __init__(self):
-        self.scheduler = BackgroundScheduler(timezone=self.timezone)
+        self.scheduler = BackgroundScheduler(timezone=self.timezone, executors={'default': ThreadPoolExecutor(20)})
         self.scheduler.add_listener(
             self._handle_event,
             EVENT_SCHEDULER_SHUTDOWN | EVENT_JOB_ERROR | EVENT_JOB_MAX_INSTANCES | EVENT_JOB_EXECUTED)
@@ -41,8 +53,9 @@ class Scheduler:
         elif trigger == 'cron':
             args = json.loads(trigger_args) if not isinstance(trigger_args, dict) else trigger_args
             minute, hour, day, month, week = args['rule'].split()
-            return CronTrigger(minute=minute, hour=hour, day=day, month=month, week=week, start_date=args['start'],
-                               end_date=args['stop'])
+            week = cls.week_map[week]
+            return CronTrigger(minute=minute, hour=hour, day=day, month=month, day_of_week=week,
+                               start_date=args['start'], end_date=args['stop'])
         else:
             raise TypeError(f'unknown schedule policy: {trigger!r}')
 
@@ -54,26 +67,28 @@ class Scheduler:
             Notify.make_notify('schedule', '1', '调度器已关闭', '调度器意外关闭，你可以在github上提交issue')
         elif event.code == EVENT_JOB_MAX_INSTANCES:
             logger.info(f'EVENT_JOB_MAX_INSTANCES: {event}')
-            Notify.make_notify('schedule', '1', f'{obj.name} - 达到调度实例上限', '一般为上个周期的执行任务还未结束，请增加调度间隔或减少任务执行耗时')
+            send_fail_notify(obj, '达到调度实例上限，一般为上个周期的执行任务还未结束，请增加调度间隔或减少任务执行耗时')
         elif event.code == EVENT_JOB_ERROR:
             logger.info(f'EVENT_JOB_ERROR: job_id {event.job_id} exception: {event.exception}')
-            Notify.make_notify('schedule', '1', f'{obj.name} - 执行异常', f'{event.exception}')
+            send_fail_notify(obj, f'执行异常：{event.exception}')
         elif event.code == EVENT_JOB_EXECUTED:
             if event.retval:
                 score = 0
                 for item in event.retval:
                     score += 1 if item[1] else 0
-                Task.objects.filter(pk=event.job_id).update(
-                    latest_status=2 if score == len(event.retval) else 1 if score else 0,
-                    latest_run_time=human_datetime(event.scheduled_run_time),
-                    latest_output=json.dumps(event.retval)
+                history = History.objects.create(
+                    task_id=event.job_id,
+                    status=2 if score == len(event.retval) else 1 if score else 0,
+                    run_time=human_datetime(event.scheduled_run_time),
+                    output=json.dumps(event.retval)
                 )
-                if score != 0 and time.time() - counter.get(event.job_id, 0) > 3600:
-                    counter[event.job_id] = time.time()
-                    Notify.make_notify('schedule', '1', f'{obj.name} - 执行失败', '请在任务计划中查看失败详情')
+                Task.objects.filter(pk=event.job_id).update(latest=history)
+                if score != 0:
+                    send_fail_notify(obj)
 
     def _init_builtin_jobs(self):
         self.scheduler.add_job(auto_clean_records, 'cron', hour=0, minute=0)
+        self.scheduler.add_job(auto_clean_schedule_history, 'cron', hour=0, minute=0)
 
     def _init(self):
         self.scheduler.start()

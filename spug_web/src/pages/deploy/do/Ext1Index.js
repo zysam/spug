@@ -1,13 +1,14 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
 import { Steps, Collapse, PageHeader, Spin, Tag, Button, Icon } from 'antd';
 import http from 'libs/http';
 import { AuthDiv } from 'components';
+import OutView from './OutView';
 import history from 'libs/history';
 import styles from './index.module.css';
 import store from './store';
@@ -22,7 +23,6 @@ class Ext1Index extends React.Component {
     this.state = {
       fetching: true,
       loading: false,
-      request: {},
     }
   }
 
@@ -41,24 +41,28 @@ class Ext1Index extends React.Component {
     http.get(`/api/deploy/request/${this.id}/`, {params: {log: this.log}})
       .then(res => {
         store.request = res;
-        store.outputs = {};
+        const outputs = {}
         while (res.outputs.length) {
           const msg = JSON.parse(res.outputs.pop());
-          if (!store.outputs.hasOwnProperty(msg.key)) {
-            const data = msg.key === 'local' ? '读取数据...        ' : '';
-            store.outputs[msg.key] = {data}
+          if (!outputs.hasOwnProperty(msg.key)) {
+            const data = msg.key === 'local' ? ['读取数据...        '] : [];
+            outputs[msg.key] = {data}
           }
-          this._parse_message(msg)
+          this._parse_message(msg, outputs)
         }
+        store.outputs = outputs
       })
       .finally(() => this.setState({fetching: false}))
   };
 
-  _parse_message = (message) => {
+  _parse_message = (message, outputs) => {
+    outputs = outputs || store.outputs;
     const {key, data, step, status} = message;
-    if (data !== undefined) store.outputs[key]['data'] += data;
-    if (step !== undefined) store.outputs[key]['step'] = step;
-    if (status !== undefined) store.outputs[key]['status'] = status;
+    if (data !== undefined) {
+      outputs[key]['data'].push(data);
+    }
+    if (step !== undefined) outputs[key]['step'] = step;
+    if (status !== undefined) outputs[key]['status'] = status;
   };
 
   handleDeploy = () => {
@@ -139,7 +143,7 @@ class Ext1Index extends React.Component {
                 <Steps.Step {...this.getStatus('local', 4)} title="检出后任务"/>
                 <Steps.Step {...this.getStatus('local', 5)} title="执行打包"/>
               </Steps>}>
-              <pre className={styles.ext1Console}>{lds.get(store.outputs, 'local.data')}</pre>
+              <OutView id="local"/>
             </Collapse.Panel>
           </Collapse>
 
@@ -158,7 +162,7 @@ class Ext1Index extends React.Component {
                     <Steps.Step {...this.getStatus(item.id, 4)} title="发布后任务"/>
                   </Steps>
                 </div>}>
-                <pre className={styles.ext1Console}>{lds.get(store.outputs, `${item.id}.data`)}</pre>
+                <OutView id={item.id}/>
               </Collapse.Panel>
             ))}
           </Collapse>

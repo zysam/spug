@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from django.views.generic import View
 from django.db.models import F
 from libs import json_response, JsonParser, Argument
@@ -25,6 +25,7 @@ class EnvironmentView(View):
             Argument('desc', required=False)
         ).parse(request.body)
         if error is None:
+            form.key = form.key.replace("'", '')
             env = Environment.objects.filter(key=form.key).first()
             if env and env.id != form.id:
                 return json_response(error=f'唯一标识符 {form.key} 已存在，请更改后重试')

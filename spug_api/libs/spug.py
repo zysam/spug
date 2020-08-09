@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from apps.alarm.models import Group, Contact
 from apps.setting.utils import AppSetting
 from apps.notify.models import Notify
@@ -18,6 +18,19 @@ def _parse_args(grp):
     return spug_key, sum([json.loads(x.contacts) for x in Group.objects.filter(id__in=grp)], [])
 
 
+def _handle_response(res, mode):
+    if res.status_code != 200:
+        Notify.make_notify(notify_source, '1', '告警通知发送失败', f'返回状态码：{res.status_code}, 请求URL：{res.url}')
+    if mode in ['dd', 'wx']:
+        res = res.json()
+        if res.get('errcode') != 0:
+            Notify.make_notify(notify_source, '1', '告警通知发送失败', f'返回数据：{res}')
+    if mode == 'spug':
+        res = res.json()
+        if res.get('error'):
+            Notify.make_notify(notify_source, '1', '告警通知发送失败', f'错误信息：{res}')
+
+
 def notify_by_wx(event, obj):
     spug_key, u_ids = _parse_args(obj.grp)
     if not spug_key:
@@ -33,7 +46,8 @@ def notify_by_wx(event, obj):
             'remark': f'故障持续{obj.duration}' if event == '2' else None,
             'users': list(users)
         }
-        requests.post(f'{spug_server}/apis/notify/wx/', json=data)
+        res = requests.post(f'{spug_server}/apis/notify/wx/', json=data)
+        _handle_response(res, 'spug')
     else:
         Notify.make_notify(notify_source, '1', '发送报警信息失败', '未找到可用的通知对象，请确保设置了相关报警联系人的微信Token。')
 
@@ -59,7 +73,8 @@ def notify_by_email(event, obj):
                 'body': '\r\n'.join(body),
                 'users': list(users)
             }
-            requests.post(f'{spug_server}/apis/notify/mail/', json=data)
+            res = requests.post(f'{spug_server}/apis/notify/mail/', json=data)
+            _handle_response(res, 'spug')
         else:
             Notify.make_notify(notify_source, '1', '发送报警信息失败', '未配置报警服务调用凭据，请在系统管理/系统设置/报警服务设置中配置。')
     else:
@@ -72,7 +87,7 @@ def notify_by_dd(event, obj):
     if users:
         texts = [
             '## %s ## ' % ('监控告警通知' if event == '1' else '告警恢复通知'),
-            f'**告警名称：** <font color="#{"f90202" if event == "1" else "8ece60"}">{obj.name}</font> ',
+            f'**告警名称：** <font color="#{"f90202" if event == "1" else "008000"}">{obj.name}</font> ',
             f'**告警时间：** {human_datetime()} ',
             f'**告警描述：** {obj.out} ',
         ]
@@ -86,6 +101,33 @@ def notify_by_dd(event, obj):
             }
         }
         for url in users:
-            requests.post(url, json=data)
+            res = requests.post(url, json=data)
+            _handle_response(res, 'dd')
     else:
         Notify.make_notify(notify_source, '1', '发送报警信息失败', '未找到可用的通知对象，请确保设置了相关报警联系人的钉钉。')
+
+
+def notify_by_qy_wx(event, obj):
+    _, u_ids = _parse_args(obj.grp)
+    users = set(x.qy_wx for x in Contact.objects.filter(id__in=u_ids, qy_wx__isnull=False))
+    if users:
+        color, title = ('warning', '监控告警通知') if event == '1' else ('info', '告警恢复通知')
+        texts = [
+            f'## {title}',
+            f'**告警名称：** <font color="{color}">{obj.name}</font> ',
+            f'**告警时间：** {human_datetime()} ',
+            f'**告警描述：** {obj.out} ',
+        ]
+        if event == '2':
+            texts.append(f'**持续时间：** {obj.duration} ')
+        data = {
+            'msgtype': 'markdown',
+            'markdown': {
+                'content': '\n'.join(texts) + '\n> 来自 Spug运维平台'
+            }
+        }
+        for url in users:
+            res = requests.post(url, json=data)
+            _handle_response(res, 'wx')
+    else:
+        Notify.make_notify(notify_source, '1', '发送报警信息失败', '未找到可用的通知对象，请确保设置了相关报警联系人的企业微信。')

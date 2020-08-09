@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import { observable } from "mobx";
 import http from 'libs/http';
@@ -15,10 +15,12 @@ class Store {
   @observable record = {};
   @observable permissions = lds.cloneDeep(codes);
   @observable deployRel = {};
+  @observable hostPerms = [];
   @observable isFetching = false;
   @observable formVisible = false;
   @observable pagePermVisible = false;
   @observable deployPermVisible = false;
+  @observable hostPermVisible = false;
 
   @observable f_name;
 
@@ -58,6 +60,12 @@ class Store {
     this.record = info;
     this.deployPermVisible = true;
     this.deployRel = info.deploy_perms || {}
+  };
+
+  showHostPerm = (info) => {
+    this.record = info;
+    this.hostPermVisible = true;
+    this.hostPerms = info['host_perms'] || []
   }
 }
 

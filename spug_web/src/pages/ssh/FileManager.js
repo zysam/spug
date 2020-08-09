@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { Drawer, Breadcrumb, Table, Icon, Divider, Switch, Button, Progress, Modal, message } from 'antd';
@@ -80,19 +80,20 @@ class FileManager extends React.Component {
     return item.kind === 'd'
   };
 
-  fetchFiles = () => {
+  fetchFiles = (pwd) => {
     this.setState({fetching: true});
-    const path = '/' + this.state.pwd.join('/');
-    http.get('/api/file/', {params: {id: 1, path}})
+    pwd = pwd || this.state.pwd;
+    const path = '/' + pwd.join('/');
+    http.get('/api/file/', {params: {id: this.id, path}})
       .then(res => {
         const objects = lds.orderBy(res, [this._kindSort, 'name'], ['desc', 'asc']);
-        this.setState({objects})
+        this.setState({objects, pwd})
       })
       .finally(() => this.setState({fetching: false}))
   };
 
   handleChdir = (name, action) => {
-    let pwd = this.state.pwd;
+    let pwd = this.state.pwd.map(x => x);
     if (action === '1') {
       pwd.push(name)
     } else if (action === '2') {
@@ -101,7 +102,7 @@ class FileManager extends React.Component {
     } else {
       pwd = []
     }
-    this.setState({pwd}, this.fetchFiles);
+    this.fetchFiles(pwd)
   };
 
   handleUpload = () => {

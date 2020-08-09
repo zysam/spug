@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from channels.generic.websocket import WebsocketConsumer
 from django_redis import get_redis_connection
 from apps.setting.utils import AppSetting
@@ -72,7 +72,7 @@ class SSHConsumer(WebsocketConsumer):
 
     def connect(self):
         user = User.objects.filter(access_token=self.token).first()
-        if user and user.token_expired >= time.time() and user.is_active:
+        if user and user.token_expired >= time.time() and user.is_active and user.has_host_perm(self.id):
             self.accept()
             self._init()
         else:

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
@@ -38,7 +38,12 @@ class TaskIndex extends React.Component {
         <Form>
           <Form.Item label="执行主机">
             {store.hosts.map(item => (
-              <Tag color="#108ee9" key={item.id}>{item.name}({item.hostname}:{item.port})</Tag>
+              <Tag
+                closable
+                color="#108ee9"
+                key={item.id}
+                onClose={() => store.hosts = store.hosts.filter(x => x.id !== item.id)}>
+                {item.name}({item.hostname}:{item.port})</Tag>
             ))}
           </Form.Item>
           <Button icon="plus" onClick={store.switchHost}>从主机列表中选择</Button>

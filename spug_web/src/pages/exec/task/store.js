@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import { observable } from "mobx";
 
@@ -9,6 +9,7 @@ class Store {
   @observable outputs = {};
   @observable hosts = [];
   @observable token = null;
+  @observable isFullscreen = false;
   @observable showHost = false;
   @observable showConsole = false;
   @observable showTemplate = false;
@@ -30,10 +31,9 @@ class Store {
         const key = `${item.hostname}:${item.port}`;
         this.outputs[key] = {
           title: `${item.name}(${key})`,
-          system: '### Establishing communication\n',
-          info: '',
-          error: '',
-          latest: '',
+          system: ['### Establishing communication\n'],
+          info: [],
+          error: [],
           status: -2
         }
       }

@@ -1,7 +1,8 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.events import EVENT_SCHEDULER_SHUTDOWN, EVENT_JOB_MAX_INSTANCES, EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from django_redis import get_redis_connection
@@ -26,7 +27,7 @@ class Scheduler:
     timezone = settings.TIME_ZONE
 
     def __init__(self):
-        self.scheduler = BackgroundScheduler(timezone=self.timezone)
+        self.scheduler = BackgroundScheduler(timezone=self.timezone, executors={'default': ThreadPoolExecutor(20)})
         self.scheduler.add_listener(
             self._handle_event,
             EVENT_SCHEDULER_SHUTDOWN | EVENT_JOB_ERROR | EVENT_JOB_MAX_INSTANCES | EVENT_JOB_EXECUTED)
@@ -53,6 +54,8 @@ class Scheduler:
                 spug.notify_by_dd(event, obj)
             elif mode == '4':
                 spug.notify_by_email(event, obj)
+            elif mode == '5':
+                spug.notify_by_qy_wx(event, obj)
 
     def _handle_notify(self, obj, is_notified, out):
         if obj.latest_status == 0:

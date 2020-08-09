@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { Layout } from 'antd';
@@ -24,8 +24,9 @@ export default class extends React.Component {
 
   initPermissions() {
     const data = localStorage.getItem('permissions');
+    const hostPerms = localStorage.getItem('host_perms');
     const isSuper = localStorage.getItem('is_supper') === 'true';
-    data && updatePermissions(isSuper, JSON.parse(data))
+    data && updatePermissions(isSuper, JSON.parse(hostPerms), JSON.parse(data))
   }
 
   render() {

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { Card } from 'antd';
@@ -27,7 +27,7 @@ export default class AlarmTrend extends React.Component {
     const {res, loading} = this.state;
     return (
       <Card loading={loading} title="报警趋势">
-        <Chart height={300} data={res} padding={[10, 10, 30, 35]} forceFit>
+        <Chart height={300} data={res} padding={[10, 10, 30, 35]} scale={{value: {alias: '报警次数'}}} forceFit>
           <Axis name="date"/>
           <Axis name="value"/>
           <Tooltip
@@ -35,7 +35,7 @@ export default class AlarmTrend extends React.Component {
               type: "y"
             }}
           />
-          <Geom type="line" position="date*value" size={2}/>
+          <Geom type="line" position="date*value" size={2} shape={"smooth"}/>
           <Geom
             type="point"
             position="date*value"

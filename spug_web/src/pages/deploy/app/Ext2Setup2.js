@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
@@ -27,23 +27,27 @@ class Ext2Setup2 extends React.Component {
             <React.Fragment key={index}>
               <Select
                 value={id}
+                showSearch
+                disabled={store.isReadOnly}
                 placeholder="请选择"
+                optionFilterProp="children"
                 style={{width: '80%', marginRight: 10}}
+                filterOption={(input, option) => option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
                 onChange={v => store.editHost(index, v)}>
                 {hostStore.records.map(item => (
                   <Select.Option key={item.id} value={item.id} disabled={info['host_ids'].includes(item.id)}>
-                    {item.name}({item['hostname']}:{item['port']})
+                    {`${item.name}(${item['hostname']}:${item['port']})`}
                   </Select.Option>
                 ))}
               </Select>
-              {info['host_ids'].length > 1 && (
+              {!store.isReadOnly && info['host_ids'].length > 1 && (
                 <Icon className={styles.delIcon} type="minus-circle-o" onClick={() => store.delHost(index)}/>
               )}
             </React.Fragment>
           ))}
         </Form.Item>
         <Form.Item wrapperCol={{span: 14, offset: 6}}>
-          <Button type="dashed" style={{width: '80%'}} onClick={store.addHost}>
+          <Button disabled={store.isReadOnly} type="dashed" style={{width: '80%'}} onClick={store.addHost}>
             <Icon type="plus"/>添加目标主机
           </Button>
         </Form.Item>

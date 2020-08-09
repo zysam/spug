@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from django.views.generic import View
 from libs import json_response, JsonParser, Argument, human_datetime
 from libs.channel import Channel
@@ -47,6 +47,8 @@ def do_task(request):
         Argument('command', help='请输入执行命令内容')
     ).parse(request.body)
     if error is None:
+        if not request.user.has_host_perm(form.host_ids):
+            return json_response(error='无权访问主机，请联系管理员')
         token = Channel.get_token()
         for host in Host.objects.filter(id__in=form.host_ids):
             Channel.send_ssh_executor(

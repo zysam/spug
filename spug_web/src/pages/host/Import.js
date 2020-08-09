@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
@@ -24,15 +24,18 @@ class ComImport extends React.Component {
     this.setState({loading: true});
     const formData = new FormData();
     formData.append('file', this.state.fileList[0]);
-    formData.append('password', this.state.password);
-    http.post('/api/host/import/', formData)
+    if (this.state.password) formData.append('password', this.state.password);
+    http.post('/api/host/import/', formData, {timeout: 120000})
       .then(res => {
         Modal.info({
           title: '导入结果',
-          content: <Form labelCol={{span: 5}} wrapperCol={{span: 14}}>
+          content: <Form labelCol={{span: 7}} wrapperCol={{span: 14}}>
             <Form.Item style={{margin: 0}} label="导入成功">{res.success.length}</Form.Item>
             {res['fail'].length > 0 && <Form.Item style={{margin: 0, color: '#1890ff'}} label="验证失败">
               <Tooltip title={`相关行：${res['fail'].join(', ')}`}>{res['fail'].length}</Tooltip>
+            </Form.Item>}
+            {res['network'].length > 0 && <Form.Item style={{margin: 0, color: '#1890ff'}} label="网络错误">
+              <Tooltip title={`相关行：${res['network'].join(', ')}`}>{res['network'].length}</Tooltip>
             </Form.Item>}
             {res['skip'].length > 0 && <Form.Item style={{margin: 0, color: '#1890ff'}} label="重复数据">
               <Tooltip title={`相关行：${res['skip'].join(', ')}`}>{res['skip'].length}</Tooltip>
@@ -40,15 +43,24 @@ class ComImport extends React.Component {
             {res['invalid'].length > 0 && <Form.Item style={{margin: 0, color: '#1890ff'}} label="无效数据">
               <Tooltip title={`相关行：${res['invalid'].join(', ')}`}>{res['invalid'].length}</Tooltip>
             </Form.Item>}
+            {res['repeat'].length > 0 && <Form.Item style={{margin: 0, color: '#1890ff'}} label="重复主机名">
+              <Tooltip title={`相关行：${res['repeat'].join(', ')}`}>{res['repeat'].length}</Tooltip>
+            </Form.Item>}
+            {res['error'].length > 0 && <Form.Item style={{margin: 0, color: '#1890ff'}} label="其他错误">
+              <Tooltip title={`请通过新建主机查看具体错误信息，相关行：${res['error'].join(', ')}`}>{res['error'].length}</Tooltip>
+            </Form.Item>}
           </Form>
         })
       })
       .finally(() => this.setState({loading: false}))
   };
 
-  beforeUpload = (file) => {
-    this.setState({fileList: [file]});
-    return false
+  handleUpload = (v) => {
+    if (v.fileList.length === 0) {
+      this.setState({fileList: []})
+    } else {
+      this.setState({fileList: [v.file]})
+    }
   };
 
   render() {
@@ -77,7 +89,8 @@ class ComImport extends React.Component {
               placeholder="请输入默认主机密码"/>
           </Form.Item>
           <Form.Item required label="导入数据">
-            <Upload name="file" accept=".xls, .xlsx" fileList={this.state.fileList} beforeUpload={this.beforeUpload}>
+            <Upload name="file" accept=".xls, .xlsx" fileList={this.state.fileList} beforeUpload={() => false}
+                    onChange={this.handleUpload}>
               <Button>
                 <Icon type="upload"/> 点击上传
               </Button>

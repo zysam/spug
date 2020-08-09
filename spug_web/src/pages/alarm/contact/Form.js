@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
@@ -58,14 +58,25 @@ class ComForm extends React.Component {
               <Input placeholder="请输入邮箱地址"/>
             )}
           </Form.Item>
-          <Form.Item label="微信Token">
+          <Form.Item label="微信Token" extra={
+            <a target="_blank" rel="noopener noreferrer"
+               href="https://spug.dev/docs/alarm-contact/">如何获取微信 Token ？</a>}>
             {getFieldDecorator('wx_token', {initialValue: info['wx_token']})(
               <Input placeholder="请输入微信token"/>
             )}
           </Form.Item>
-          <Form.Item label="钉钉">
+          <Form.Item label="钉钉" extra={<span>
+            钉钉收不到通知？请参考
+            <a target="_blank" rel="noopener noreferrer"
+               href="https://spug.dev/docs/install-error/#%E9%92%89%E9%92%89%E6%94%B6%E4%B8%8D%E5%88%B0%E9%80%9A%E7%9F%A5%EF%BC%9F">官方文档</a>
+          </span>}>
             {getFieldDecorator('ding', {initialValue: info['ding']})(
-              <Input placeholder="请输入钉钉机器人地址"/>
+              <Input placeholder="请输入钉钉机器人完整地址"/>
+            )}
+          </Form.Item>
+          <Form.Item label="企业微信">
+            {getFieldDecorator('qy_wx', {initialValue: info['qy_wx']})(
+              <Input placeholder="请输入企业微信机器人完整地址"/>
             )}
           </Form.Item>
         </Form>

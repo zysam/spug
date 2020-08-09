@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import { observable } from "mobx";
 import http from 'libs/http';
@@ -15,6 +15,7 @@ class Store {
   @observable isFetching = false;
   @observable formVisible = false;
   @observable infoVisible = false;
+  @observable recordVisible = false;
 
   @observable f_status;
   @observable f_name;
@@ -26,7 +27,7 @@ class Store {
       .then(({types, tasks}) => {
         tasks.map(item => {
           const value = item['latest_run_time'];
-          item['latest_run_time'] = value ? moment(value).fromNow() : null;
+          item['latest_run_time_alias'] = value ? moment(value).fromNow() : null;
           return null
         });
         this.records = tasks;
@@ -35,13 +36,19 @@ class Store {
       .finally(() => this.isFetching = false)
   };
 
-  showForm = (info = {}) => {
+  showForm = (info = {rst_notify: {mode: '0'}}) => {
     this.formVisible = true;
     this.record = info
   };
 
-  showInfo = (info = {}) => {
-    this.infoVisible = true;
+  showInfo = (info, h_id = 'latest') => {
+    if (info) this.record = info;
+    this.record.h_id = h_id;
+    this.infoVisible = true
+  };
+
+  showRecord = (info) => {
+    this.recordVisible = true;
     this.record = info
   };
 

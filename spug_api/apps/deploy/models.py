@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from django.db import models
 from libs import ModelMixin, human_datetime
 from apps.account.models import User
@@ -34,6 +34,8 @@ class DeployRequest(models.Model, ModelMixin):
     created_by = models.ForeignKey(User, models.PROTECT, related_name='+')
     approve_at = models.CharField(max_length=20, null=True)
     approve_by = models.ForeignKey(User, models.PROTECT, related_name='+', null=True)
+    do_at = models.CharField(max_length=20, null=True)
+    do_by = models.ForeignKey(User, models.PROTECT, related_name='+', null=True)
 
     def __repr__(self):
         return f'<DeployRequest name={self.name}>'

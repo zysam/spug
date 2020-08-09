@@ -1,7 +1,7 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
@@ -36,7 +36,7 @@ class Ext1Form extends React.Component {
 
   fetchVersions = () => {
     this.setState({fetching: true});
-    http.get(`/api/app/deploy/${store.record.deploy_id}/versions/`)
+    http.get(`/api/app/deploy/${store.record.deploy_id}/versions/`, {timeout: 120000})
       .then(res => {
         this.setState({versions: res}, this._initExtra1);
       })
@@ -79,7 +79,7 @@ class Ext1Form extends React.Component {
   };
 
   switchType = (v) => {
-    this.setState({git_type: v, extra1: null}, this._initExtra1)
+    this.setState({git_type: v, extra1: undefined}, this._initExtra1)
   };
 
   switchExtra1 = (v) => {
@@ -139,7 +139,11 @@ class Ext1Form extends React.Component {
               <Input placeholder="请输入申请标题"/>
             )}
           </Form.Item>
-          <Form.Item required label="选择分支/标签/版本" help="根据网络情况，刷新可能会很慢，请耐心等待。">
+          <Form.Item required label="选择分支/标签/版本" extra={<span>
+            根据网络情况，首次刷新可能会很慢，请耐心等待。
+            <a target="_blank" rel="noopener noreferrer"
+               href="https://spug.dev/docs/install-error/#%E6%96%B0%E5%BB%BA%E5%B8%B8%E8%A7%84%E5%8F%91%E5%B8%83%E7%94%B3%E8%AF%B7-git-clone-%E9%94%99%E8%AF%AF">clone 失败？</a>
+          </span>}>
             <Col span={19}>
               <Input.Group compact>
                 <Select value={git_type} onChange={this.switchType} style={{width: 100}}>
@@ -157,7 +161,7 @@ class Ext1Form extends React.Component {
                     Object.keys(branches || {}).map(b => <Select.Option key={b} value={b}>{b}</Select.Option>)
                   ) : (
                     Object.entries(tags || {}).map(([tag, info]) => (
-                      <Select.Option key={tag} value={tag}>{tag} {info.author}</Select.Option>
+                      <Select.Option key={tag} value={tag}>{`${tag} ${info.author} ${info.message}`}</Select.Option>
                     ))
                   )}
                 </Select>
@@ -184,7 +188,7 @@ class Ext1Form extends React.Component {
               <Input placeholder="请输入备注信息"/>
             )}
           </Form.Item>
-          <Form.Item required label="发布目标主机">
+          <Form.Item required label="发布目标主机" help="通过点击主机名称自由选择本次发布的主机。">
             {info['app_host_ids'].map(id => (
               <Tag.CheckableTag key={id} checked={host_ids.includes(id)} onChange={() => this.handleChange(id)}>
                 {lds.get(hostStore.idMap, `${id}.name`)}({lds.get(hostStore.idMap, `${id}.hostname`)}:{lds.get(hostStore.idMap, `${id}.port`)})

@@ -1,6 +1,6 @@
 # Copyright: (c) OpenSpug Organization. https://github.com/openspug/spug
 # Copyright: (c) <spug.dev@gmail.com>
-# Released under the MIT License.
+# Released under the AGPL-3.0 License.
 from django.core.cache import cache
 from django.views.generic import View
 from django.db.models import F
@@ -50,6 +50,12 @@ class UserView(View):
             if form.get('password'):
                 form.token_expired = 0
                 form.password_hash = User.make_password(form.pop('password'))
+            if 'username' in form:
+                if User.objects.filter(username=form.username, deleted_by_id__isnull=True).exclude(id=form.id).exists():
+                    return json_response(error=f'已存在登录名为【{form.username}】的用户')
+            if 'is_active' in form:
+                user = User.objects.get(pk=form.id)
+                cache.delete(user.username)
             User.objects.filter(pk=form.pop('id')).update(**form)
         return json_response(error=error)
 
@@ -91,7 +97,8 @@ class RoleView(View):
         form, error = JsonParser(
             Argument('id', type=int, help='参数错误'),
             Argument('page_perms', type=dict, required=False),
-            Argument('deploy_perms', type=dict, required=False)
+            Argument('deploy_perms', type=dict, required=False),
+            Argument('host_perms', type=list, required=False)
         ).parse(request.body)
         if error is None:
             role = Role.objects.filter(pk=form.pop('id')).first()
@@ -101,6 +108,8 @@ class RoleView(View):
                 role.page_perms = json.dumps(form.page_perms)
             if form.deploy_perms is not None:
                 role.deploy_perms = json.dumps(form.deploy_perms)
+            if form.host_perms is not None:
+                role.host_perms = json.dumps(form.host_perms)
             role.user_set.update(token_expired=0)
             role.save()
         return json_response(error=error)
@@ -190,6 +199,7 @@ def handle_user_info(user, x_real_ip):
         'nickname': user.nickname,
         'is_supper': user.is_supper,
         'has_real_ip': True if x_real_ip else False,
+        'host_perms': [] if user.is_supper else user.host_perms,
         'permissions': [] if user.is_supper else user.page_perms
     })
 

@@ -1,14 +1,14 @@
 /**
  * Copyright (c) OpenSpug Organization. https://github.com/openspug/spug
  * Copyright (c) <spug.dev@gmail.com>
- * Released under the MIT License.
+ * Released under the AGPL-3.0 License.
  */
 import React from 'react';
 import { observer } from 'mobx-react';
 import { Modal, Form, Input, Select, Col, Button, Steps, Tabs, InputNumber, DatePicker, Icon, message } from 'antd';
 import { LinkButton, ACEditor } from 'components';
 import TemplateSelector from '../exec/task/TemplateSelector';
-import { http, cleanCommand } from 'libs';
+import { http, cleanCommand, hasHostPermission } from 'libs';
 import store from './store';
 import hostStore from '../host/store';
 import styles from './index.module.css';
@@ -20,10 +20,13 @@ class ComForm extends React.Component {
   constructor(props) {
     super(props);
     this.isFirstRender = true;
+    this.lastFetchId = 0;
+    this._fetchNextRunTime = lds.debounce(this._fetchNextRunTime, 500);
     this.state = {
       loading: false,
       type: null,
       page: 0,
+      nextRunTime: null,
       args: {[store.record['trigger']]: store.record['trigger_args']},
       command: store.record['command'],
     }
@@ -39,13 +42,13 @@ class ComForm extends React.Component {
   _parse_args = (trigger) => {
     switch (trigger) {
       case 'date':
-        return this.state.args['date'].format('YYYY-MM-DD HH:mm:ss');
+        return moment(this.state.args['date']).format('YYYY-MM-DD HH:mm:ss');
       case 'cron':
         const {rule, start, stop} = this.state.args['cron'];
         return JSON.stringify({
           rule,
-          start: start ? start.format('YYYY-MM-DD HH:mm:ss') : null,
-          stop: stop ? stop.format('YYYY-MM-DD HH:mm:ss') : null
+          start: start ? moment(start).format('YYYY-MM-DD HH:mm:ss') : null,
+          stop: stop ? moment(stop).format('YYYY-MM-DD HH:mm:ss') : null
         });
       default:
         return this.state.args[trigger];
@@ -100,7 +103,35 @@ class ComForm extends React.Component {
   handleCronArgs = (key, value) => {
     let args = this.state.args['cron'] || {};
     args = Object.assign(args, {[key]: value});
-    this.setState({args: Object.assign(this.state.args, {cron: args})})
+    this.setState({args: Object.assign(this.state.args, {cron: args})}, () => {
+      if (key === 'rule') {
+        value = value.trim();
+        if (value.split(' ').length === 5) {
+          this.setState({nextRunTime: <Icon type="loading"/>});
+          this._fetchNextRunTime()
+        } else {
+          this.setState({nextRunTime: null})
+        }
+      } else {
+        this.setState({nextRunTime: <Icon type="loading"/>});
+        this._fetchNextRunTime()
+      }
+    });
+  };
+
+  _fetchNextRunTime = () => {
+    this.lastFetchId += 1;
+    const fetchId = this.lastFetchId;
+    const args = this._parse_args('cron');
+    http.post('/api/schedule/run_time/', JSON.parse(args))
+      .then(({success, msg}) => {
+        if (fetchId !== this.lastFetchId) return;
+        if (success) {
+          this.setState({nextRunTime: <span style={{fontSize: 12, color: '#52c41a'}}>{msg}</span>})
+        } else {
+          this.setState({nextRunTime: <span style={{fontSize: 12, color: '#ff4d4f'}}>{msg}</span>})
+        }
+      })
   };
 
   verifyButtonStatus = () => {
@@ -117,8 +148,8 @@ class ComForm extends React.Component {
 
   render() {
     const info = store.record;
-    const {getFieldDecorator} = this.props.form;
-    const {page, args, loading, showTmp} = this.state;
+    const {getFieldDecorator, getFieldValue} = this.props.form;
+    const {page, args, loading, showTmp, nextRunTime} = this.state;
     const [b1, b2, b3] = this.verifyButtonStatus();
     return (
       <Modal
@@ -162,8 +193,28 @@ class ComForm extends React.Component {
               <ACEditor
                 mode="sh"
                 value={this.state.command}
-                onChange={val => this.setState({command: val})}
-                height="150px"/>
+                width="100%"
+                height="150px"
+                onChange={val => this.setState({command: val})}/>
+            </Form.Item>
+            <Form.Item label="失败通知" extra={<span>
+              任务执行失败告警通知，
+              <a target="_blank" rel="noopener noreferrer"
+                 href="https://spug.dev/docs/install-error/#%E9%92%89%E9%92%89%E6%94%B6%E4%B8%8D%E5%88%B0%E9%80%9A%E7%9F%A5%EF%BC%9F">钉钉收不到通知？</a>
+            </span>}>
+              {getFieldDecorator('rst_notify.value', {initialValue: info['rst_notify']['value']})(
+                <Input
+                  addonBefore={getFieldDecorator('rst_notify.mode', {initialValue: info['rst_notify']['mode']})(
+                    <Select style={{width: 100}}>
+                      <Select.Option value="0">关闭</Select.Option>
+                      <Select.Option value="1">钉钉</Select.Option>
+                      <Select.Option value="3">企业微信</Select.Option>
+                      <Select.Option value="2">Webhook</Select.Option>
+                    </Select>
+                  )}
+                  disabled={getFieldValue('rst_notify.mode') === '0'}
+                  placeholder="请输入"/>
+              )}
             </Form.Item>
             <Form.Item label="备注信息">
               {getFieldDecorator('desc', {initialValue: info['desc']})(
@@ -177,13 +228,16 @@ class ComForm extends React.Component {
                 <React.Fragment key={index}>
                   <Select
                     value={id}
+                    showSearch
                     placeholder="请选择"
-                    style={{width: '60%', marginRight: 10}}
+                    optionFilterProp="children"
+                    style={{width: '80%', marginRight: 10}}
+                    filterOption={(input, option) => option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0}
                     onChange={v => store.editTarget(index, v)}>
                     <Select.Option value="local" disabled={store.targets.includes('local')}>本机</Select.Option>
-                    {hostStore.records.map(item => (
+                    {hostStore.records.filter(x => x.id === id || hasHostPermission(x.id)).map(item => (
                       <Select.Option key={item.id} value={item.id} disabled={store.targets.includes(item.id)}>
-                        {item.name}({item['hostname']}:{item['port']})
+                        {`${item.name}(${item['hostname']}:${item['port']})`}
                       </Select.Option>
                     ))}
                   </Select>
@@ -194,7 +248,7 @@ class ComForm extends React.Component {
               ))}
             </Form.Item>
             <Form.Item wrapperCol={{span: 14, offset: 6}}>
-              <Button type="dashed" style={{width: '60%'}} onClick={store.addTarget}>
+              <Button type="dashed" style={{width: '80%'}} onClick={store.addTarget}>
                 <Icon type="plus"/>添加执行对象
               </Button>
             </Form.Item>
@@ -227,6 +281,7 @@ class ComForm extends React.Component {
                   <Tabs.TabPane tab="UNIX Cron" key="cron">
                     <Form.Item required label="执行规则" help="兼容Cron风格，可参考官方例子">
                       <Input
+                        suffix={nextRunTime || <span/>}
                         value={lds.get(args, 'cron.rule')}
                         placeholder="例如每天凌晨1点执行：0 1 * * *"
                         onChange={e => this.handleCronArgs('rule', e.target.value)}/>
